@@ -2,7 +2,6 @@
 
   // ---- CONSTANTS ----
   const WATCH_THRESHOLD_MS = 3000;
-  const PULL_URL = 'http://152.7.177.184:3001/api/consume/';
   const POLL_INTERVAL_MS = 1000;
 
   const processedVideos = new Set();
@@ -257,13 +256,13 @@
 
   async function poll() {
     try {
-      const response = await fetch(PULL_URL);
-      if (!response.ok) throw new Error(`Status ${response.status}`);
-
-      const data = await response.json();
-      const items = Array.isArray(data) ? data : [data];
-
+      const result = await chrome.runtime.sendMessage({ type: 'POLL_REQUEST' });
+  
+      if (!result || !result.success) return;
+  
+      const items = Array.isArray(result.data) ? result.data : [result.data];
       if (items.length === 0) return;
+  
       renderFeed(feedEl, items);
     } catch (error) {
       console.warn('[VideoTracker] Poll failed:', error.message);
