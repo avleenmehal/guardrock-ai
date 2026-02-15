@@ -28,12 +28,12 @@ valkey.on('connect', () => console.log('Connected to Valkey'));
 
 // Validation middleware
 const validateSubmission = (req, res, next) => {
-  const { url, channel_name, title, description, unique_id } = req.body;
-  
-  if (!url || !channel_name || !title || !description || !unique_id) {
+  const { url, channel_name, title, description, unique_id, timestamp } = req.body;
+  console.log(req.body);
+  if (!url || !channel_name || !title || !unique_id || !timestamp) {
     return res.status(400).json({ 
       error: 'Missing required fields',
-      required: ['url', 'channel_name', 'title', 'description', 'unique_id']
+      required: ['url', 'channel_name', 'title', 'description', 'unique_id', 'timestamp']
     });
   }
   
