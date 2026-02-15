@@ -1,8 +1,9 @@
 # GuardRock AI
 
-**Deployment URLs. **
+**Deployment URLs**
 
 Frontend - http://152.7.178.231/
+
 Video Upload service - http://152.7.178.231/upload.html
 
 
