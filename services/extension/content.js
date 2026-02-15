@@ -2,7 +2,7 @@
 
   // ---- CONSTANTS ----
   const WATCH_THRESHOLD_MS = 3000;
-  const PULL_URL = 'http://152.7.177.184:3000/api/consume/';
+  const PULL_URL = 'http://152.7.177.184:3001/api/consume/';
   const POLL_INTERVAL_MS = 1000;
 
   const processedVideos = new Set();
