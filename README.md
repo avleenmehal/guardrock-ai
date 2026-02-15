@@ -1,5 +1,11 @@
 # GuardRock AI
 
+**Deployment URLs. **
+
+Frontend - http://152.7.178.231/
+Video Upload service - http://152.7.178.231/upload.html
+
+
 **Defending minds from manipulative content, one short video at a time.**
 
 In the age of AI-generated content, short-form videos have become a powerful vehicle for manipulation. They create false urgency, exploit emotions, and push people toward impulsive decisions -- all within 60 seconds. GuardRock AI is a real-time  system that detects deceptive and manipulative patterns in short videos and warns users before they fall for it.
