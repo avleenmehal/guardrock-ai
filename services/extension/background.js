@@ -1,5 +1,5 @@
 //Constants for the backend URL, maximum retries, and retry delay
-const BACKEND_URL = 'http://localhost:3000/endpoint';
+const BACKEND_URL = 'http://152.7.179.59:3000/api/submit/';
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
 
@@ -49,7 +49,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   console.log('[Background] Received video metadata:', message.payload);
 
-  publishToBackendMock(message.payload).then((result) => {
+  publishToBackend(message.payload).then((result) => {
     sendResponse(result);
   });
 

@@ -53,11 +53,11 @@
       '';
   
     return {
-      video_unique_id: videoId,
-      video_url: window.location.href,
-      video_title: title,
+      unique_id: videoId,
+      url: window.location.href,
+      title: title,
       channel_name: channel,
-      video_description: description,
+      description: description,
       timestamp: Date.now(),
     };
   }
