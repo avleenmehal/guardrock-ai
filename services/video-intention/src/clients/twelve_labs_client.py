@@ -1,9 +1,13 @@
 from twelvelabs import TwelveLabs
 import time
 import os
-import glob
+import sys
 from typing import Optional, Dict, Any
 from models.message import VideoMessage
+
+# Add project root to path so we can import download_yt
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+from download_yt import download_youtube_short
 
 DOWNLOADS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "downloads")
 
@@ -38,21 +42,26 @@ class TwelveLabsClient:
 
     def wait_for_indexing(self, task: Any) -> Optional[str]:
         """Wait for video indexing to complete. Returns video_id."""
-        print(f"[TWELVE_LABS] Waiting for indexing (task {task.id}) ...")
+        task_id = task.id
+        print(f"[TWELVE_LABS] Waiting for indexing (task {task_id}) ...")
         start_time = time.time()
 
         try:
-            def on_progress(t):
-                print(f"[TWELVE_LABS]   [{int(time.time() - start_time)}s] {t.status}")
+            while True:
+                updated = self.client.tasks.retrieve(task_id)
+                status = updated.status
+                print(f"[TWELVE_LABS]   [{int(time.time() - start_time)}s] {status}")
 
-            task.wait_for_done(sleep_interval=10, callback=on_progress)
+                if status == "ready":
+                    video_id = updated.video_id
+                    print(f"[TWELVE_LABS] Indexing done — video_id={video_id} ({int(time.time() - start_time)}s)")
+                    return video_id
 
-            if task.status == "ready":
-                print(f"[TWELVE_LABS] Indexing done — video_id={task.video_id} ({int(time.time() - start_time)}s)")
-                return task.video_id
+                if status == "failed":
+                    print(f"[TWELVE_LABS] Indexing failed")
+                    return None
 
-            print(f"[TWELVE_LABS] Indexing ended with status: {task.status}")
-            return None
+                time.sleep(10)
         except Exception as e:
             print(f"[TWELVE_LABS] Indexing error: {e}")
             return None
@@ -61,31 +70,38 @@ class TwelveLabsClient:
         """Analyze an indexed video. Returns the analysis text."""
         print(f"[TWELVE_LABS] Analyzing video {video_id} ...")
         try:
-            result = self.client.generate.text(video_id=video_id, prompt=prompt)
+            result = self.client.analyze(video_id=video_id, prompt=prompt)
             print(f"[TWELVE_LABS] Analysis done ({len(result.data)} chars)")
             return result.data
         except Exception as e:
             print(f"[TWELVE_LABS] Analysis failed: {e}")
             return None
 
-    def _find_video_file(self) -> Optional[str]:
-        """Return the first video file found in the downloads folder."""
-        for ext in ("*.mp4", "*.mov", "*.avi", "*.mkv", "*.webm"):
-            matches = glob.glob(os.path.join(DOWNLOADS_DIR, ext))
-            if matches:
-                return matches[0]
+    def _download_video(self, url: str, video_id: str) -> Optional[str]:
+        """Download the YouTube video using yt-dlp, named by video_id."""
+        # Check if already downloaded
+        for ext in ("mp4", "mov", "avi", "mkv", "webm"):
+            path = os.path.join(DOWNLOADS_DIR, f"{video_id}.{ext}")
+            if os.path.isfile(path):
+                print(f"[TWELVE_LABS] Already downloaded: {path}")
+                return path
+
+        print(f"[TWELVE_LABS] Downloading {url} ...")
+        result = download_youtube_short(url, output_path=DOWNLOADS_DIR, filename=video_id)
+        if result and os.path.isfile(result):
+            return result
         return None
 
     def process_message(self, message: VideoMessage) -> Optional[Dict]:
-        """Index a local video file, wait for indexing, and analyze it."""
+        """Download, index, and analyze a video."""
         print(f"\n{'=' * 60}")
         print(f"[TWELVE_LABS] Processing: {message.title} ({message.unique_id})")
         print(f"{'=' * 60}\n")
 
-        # Step 1: Find the downloaded video file
-        file_path = self._find_video_file()
+        # Step 1: Download the video from YouTube
+        file_path = self._download_video(message.url, message.unique_id)
         if not file_path:
-            print(f"[TWELVE_LABS] No video file found in {DOWNLOADS_DIR}")
+            print(f"[TWELVE_LABS] Failed to download video: {message.url}")
             return None
 
         # Step 2: Upload and index
