@@ -158,7 +158,22 @@ class TwelveLabsClient:
         }
 
     def _get_analysis_prompt(self) -> str:
-        return """Analyze this video for signs of manipulation and urgency that might indicate misinformation or misleading content.
+        return """ #Context:
+        You are a video analyst specializing in detecting AI generated content, manipulation, urgency tactics, and deception in video content to prevent 
+        users from taking sensitive action. AI generated content can be highly realistic and may use sophisticated techniques to mimic human speech, facial expressions, and mannerisms.
+        At the same time, not all videos discuss sensitive topics or contain manipulation — many are safe and informative. Your task is to carefully
+         analyze the video content, including the speaker's intent, language, tone, and visual cues, to determine if there are any signs of manipulation, misinformation, or urgent calls to action that might indicate the video is trying to mislead viewers or push them towards a harmful action.
+         
+        #Instruction: Your task is to analyze the video and look for any signs of manipulation, spreading misinformation, 
+        or urgent calls to action that might indicate the video is trying to mislead viewers or push them towards a harmful action.
+        If the video is not AI generated, you can mark it safe. 
+        
+        Before answering:
+        1. Identify whether the speaker is real or synthetically generated through AI.
+        2. Look for audio-video sync mismatches.
+        3. Evaluate unnatural facial micro-expressions.
+        4. Determine speaker intent (informational, persuasive, manipulative, threatening).
+        5. Output scores from 0–10 and justification.
 
 **Look for the following indicators:**
 
@@ -185,10 +200,11 @@ class TwelveLabsClient:
 
 **Provide the following in your analysis:**
 
-1. **Manipulation Score (0-10):** Rate the overall level of manipulative tactics used
-2. **Urgency Score (0-10):** Rate the level of urgency and time pressure
-3. **Key Phrases:** List specific phrases or statements that demonstrate manipulation or urgency
-4. **Summary:** Brief overview of the video's main argument or message
-5. **Red Flags:** Any specific concerns that warrant fact-checking
+1. **AI Generation Indicators:** Note any signs that the speaker may be AI-generated (e.g., audio-video sync issues, unnatural expressions)
+2. **Manipulation Score (0-10):** Rate the overall level of manipulative tactics used
+3. **Urgency Score (0-10):** Rate the level of urgency and time pressure
+4. **Key Phrases:** List specific phrases or statements that demonstrate manipulation or urgency
+5. **Summary:** Brief overview of the video's main argument or message
+6. **Red Flags:** Any specific concerns that warrant fact-checking
 
 Be specific and quote exact phrases from the video when possible."""
