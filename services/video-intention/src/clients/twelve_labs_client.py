@@ -160,43 +160,16 @@ class TwelveLabsClient:
     def _get_analysis_prompt(self) -> str:
         return """ #Context:
         You are a video analyst specializing in detecting AI generated content, manipulation, urgency tactics, and deception in video content to prevent 
-        users from taking sensitive action. AI generated content can be highly realistic and may use sophisticated techniques to mimic human speech, facial expressions, and mannerisms.
-        At the same time, not all videos discuss sensitive topics or contain manipulation — many are safe and informative. Your task is to carefully
-         analyze the video content, including the speaker's intent, language, tone, and visual cues, to determine if there are any signs of manipulation, misinformation, or urgent calls to action that might indicate the video is trying to mislead viewers or push them towards a harmful action.
+        users from taking sensitive action. Your task is to carefully analyze the video content and check if it is AI generated or not.
          
-        #Instruction: Your task is to analyze the video and look for any signs of manipulation, spreading misinformation, 
-        or urgent calls to action that might indicate the video is trying to mislead viewers or push them towards a harmful action.
+        #Instruction: Your task is to analyze the video and look for any signs of AI Generation, or urgent calls to action that might indicate the video is trying to mislead viewers or push them towards a harmful action.
         If the video is not AI generated, you can mark it safe. 
         
         Before answering:
         1. Identify whether the speaker is real or synthetically generated through AI.
         2. Look for audio-video sync mismatches.
-        3. Evaluate unnatural facial micro-expressions.
-        4. Determine speaker intent (informational, persuasive, manipulative, threatening).
-        5. Output scores from 0–10 and justification.
-
-**Look for the following indicators:**
-
-1. **Manipulation Tactics:**
-   - Emotional appeals (fear, anger, shock, outrage)
-   - Loaded or inflammatory language
-   - One-sided arguments without acknowledging counterpoints
-   - Misuse of authority ("experts say" without sources)
-   - "Us vs. them" divisive rhetoric
-   - Exaggerated claims or hyperbole
-   - Cherry-picking facts or taking things out of context
-
-2. **Urgency Indicators:**
-   - Time pressure language ("act now", "limited time", "before it's too late")
-   - Consequence threats ("if you don't act", "they're coming for you")
-   - Breaking news framing or urgent calls to action
-   - Immediacy language ("urgent", "critical", "must watch")
-
-3. **Credibility Concerns:**
-   - Unverified claims presented as facts
-   - Missing or vague sources
-   - Conspiracy theory language
-   - Claims that "they don't want you to know this"
+        3. Look for unnatural movements of animals or objects in the video.
+        4. Output scores from 0–10 and justification.
 
 **Provide the following in your analysis:**
 
