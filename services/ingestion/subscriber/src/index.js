@@ -1,5 +1,6 @@
 const express = require('express');
 const Redis = require('ioredis');
+const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
