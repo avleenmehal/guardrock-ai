@@ -30,7 +30,7 @@ class TwelveLabsClient:
                     index_id=self.index_id,
                     video_file=video_file,
                 )
-            print(f"[TWELVE_LABS] Uploaded — task {task.id} ({task.status})")
+            print(f"[TWELVE_LABS] Uploaded — task {task.id}")
             return task
         except Exception as e:
             print(f"[TWELVE_LABS] Upload failed: {e}")
