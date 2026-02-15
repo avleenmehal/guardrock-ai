@@ -1,3 +1,11 @@
+import sys
+import os
+
+# Add src directory to path so imports work when run from any directory
+_src_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _src_dir not in sys.path:
+    sys.path.insert(0, _src_dir)
+
 from clients.twelve_labs_client import TwelveLabsClient
 from config import config
 from consumer.valkey_consumer import ValkeyConsumer
