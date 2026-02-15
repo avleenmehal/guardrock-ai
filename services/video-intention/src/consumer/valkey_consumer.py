@@ -24,16 +24,16 @@ class ValkeyConsumer:
         url = f"{self.base_url}"
 
         try:
-            # response = requests.get(url, timeout=5)
-            response = {
-                "title": "Unit Test Video",
-                "uuid": "243567897",
-                "url": "http://example.com/video.mp4",
-                "channel_name": "unit-test-channel",
-                "timestamp": "2024-06-01T12:00:00Z",
-                "description": "This is a test video message for unit testing."
-            }
-            return VideoMessage.from_dict(response)
+            response = requests.get(url, timeout=5)
+            # response = {
+            #     "title": "Unit Test Video",
+            #     "unique_id": "243567897",
+            #     "url": "https://www.youtube.com/shorts/tuWKsJqbcWs",
+            #     "channel_name": "unit-test-channel-crocs",
+            #     "timestamp": "2024-06-01T12:00:00Z",
+            #     "description": "This is a test video message for unit testing."
+            # }
+            # return VideoMessage.from_dict(response)
             if response.status_code == 200:
                 data = response.json()
                 return VideoMessage.from_dict(data)
@@ -58,7 +58,7 @@ class ValkeyConsumer:
         message = self._peek_message()
 
         if message:
-            print(f"[WAIT] ✓ Message found: {message.uuid}")
+            print(f"[WAIT] ✓ Message found: {message.unique_id}")
             print(f"[WAIT] → Switching to PROCESS state")
             self.state = "PROCESS"
             return message
@@ -70,7 +70,7 @@ class ValkeyConsumer:
         """
         PROCESS state: Execute callback and acknowledge
         """
-        print(f"[PROCESS] Processing message: {message.uuid}")
+        print(f"[PROCESS] Processing message: {message.unique_id}")
 
         processing_success = False
 

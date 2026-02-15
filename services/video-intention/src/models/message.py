@@ -8,7 +8,7 @@ from marshmallow.utils import timestamp
 @dataclass
 class VideoMessage:
     """Message received from Valkey queue"""
-    uuid: str
+    unique_id: str
     url: str
     title: str
     channel_name: str
@@ -19,7 +19,7 @@ class VideoMessage:
     def from_dict(cls, data: dict) -> 'VideoMessage':
         """Create VideoMessage from dictionary"""
         return cls(
-            uuid=data['uuid'],
+            unique_id=data['unique_id'],
             url=data['url'],
             title=data['title'],
             channel_name=data['channel_name'],

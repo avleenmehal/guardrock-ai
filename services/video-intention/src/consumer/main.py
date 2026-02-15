@@ -1,32 +1,45 @@
+from clients.twelve_labs_client import TwelveLabsClient
+from config import config
 from consumer.valkey_consumer import ValkeyConsumer
 from models.message import VideoMessage
 
 
-def process_message(message: VideoMessage):
-    """
-    This is where your Twelve Labs processing will go
-    For now, just simulate work
-    """
-    print(f"  Title: {message.title}")
-    print(f"  URL: {message.url}")
-    print(f"  Channel: {message.channel_name}")
-
-    # Simulate processing
-    import time
-    print("  [Simulating indexing...]")
-    time.sleep(2)
-    print("  [Simulating analysis...]")
-    time.sleep(1)
-    print("  ✓ Done!")
-
-
 def main():
-    # Version A/B (REST API)
-    consumer = ValkeyConsumer(
-        base_url="http://localhost:8080/api/queue/video-ingestion",
+    """Main entry point"""
+    print("Starting Video Intention Service")
+    print("=" * 60)
+
+    # Initialize clients
+    valkey_consumer = ValkeyConsumer(
+        base_url="http://152.7.179.59:3001/api/consume",
         poll_interval=10
     )
-    consumer.start(process_message)
+
+    twelve_labs_client = TwelveLabsClient(api_key=config.twelve_labs.api_key,index_id="69911c19f20ac9cd89a7b61b")
+
+    print("✓ Clients initialized")
+    print("=" * 60 + "\n")
+
+    # Define callback function for each message
+    def message_callback(message: VideoMessage):
+        result = twelve_labs_client.process_message(message)
+
+        if result:
+            print("\n" + "=" * 60)
+            print("ANALYSIS RESULT")
+            print("=" * 60)
+            print(result['analysis_text'])
+            print("=" * 60 + "\n")
+
+            # TODO: Parse analysis, calculate scores, call fact-checker
+        else:
+            print("\n✗ Failed to process video\n")
+
+    # Start consuming messages
+    try:
+        valkey_consumer.start(message_callback)
+    finally:
+        valkey_consumer.stop()
 
 
 if __name__ == "__main__":
