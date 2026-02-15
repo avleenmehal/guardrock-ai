@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Body -->
+  <ellipse cx="256" cy="300" rx="200" ry="210" fill="#9C8577"/>
+  <!-- Belly -->
+  <ellipse cx="256" cy="340" rx="120" ry="140" fill="#FFFFFF"/>
+  <!-- Left wing -->
+  <path d="M80 260 Q60 340 100 420 Q140 380 130 300Z" fill="#7A6558"/>
+  <!-- Right wing -->
+  <path d="M432 260 Q452 340 412 420 Q372 380 382 300Z" fill="#7A6558"/>
+  <!-- Left eye ring -->
+  <circle cx="205" cy="230" r="60" fill="#4A3728"/>
+  <!-- Right eye ring -->
+  <circle cx="307" cy="230" r="60" fill="#4A3728"/>
+  <!-- Left eye white -->
+  <circle cx="205" cy="230" r="42" fill="#FFFFFF"/>
+  <!-- Right eye white -->
+  <circle cx="307" cy="230" r="42" fill="#FFFFFF"/>
+  <!-- Left pupil -->
+  <circle cx="205" cy="234" r="18" fill="#1A1A1A"/>
+  <!-- Right pupil -->
+  <circle cx="307" cy="234" r="18" fill="#1A1A1A"/>
+  <!-- Beak -->
+  <polygon points="256,265 240,290 272,290" fill="#E5A800"/>
+  <!-- Left ear tuft -->
+  <path d="M140 140 Q160 80 200 130 Q170 140 150 160Z" fill="#9C8577"/>
+  <!-- Right ear tuft -->
+  <path d="M372 140 Q352 80 312 130 Q342 140 362 160Z" fill="#9C8577"/>
+  <!-- Left foot -->
+  <g fill="#4A3728">
+    <path d="M200 500 Q190 510 180 505 Q185 495 195 490Z"/>
+    <path d="M210 502 Q205 515 195 512 Q198 500 205 492Z"/>
+    <path d="M220 500 Q218 515 208 513 Q210 500 215 490Z"/>
+  </g>
+  <!-- Right foot -->
+  <g fill="#4A3728">
+    <path d="M292 500 Q294 515 304 513 Q302 500 297 490Z"/>
+    <path d="M302 502 Q307 515 317 512 Q314 500 307 492Z"/>
+    <path d="M312 500 Q322 510 332 505 Q327 495 317 490Z"/>
+  </g>
+</svg>
