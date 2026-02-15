@@ -2,6 +2,7 @@ from twelvelabs import TwelveLabs
 import time
 import os
 import sys
+import requests
 from typing import Optional, Dict, Any
 from models.message import VideoMessage
 
@@ -78,7 +79,7 @@ class TwelveLabsClient:
             return None
 
     def _download_video(self, url: str, video_id: str) -> Optional[str]:
-        """Download the YouTube video using yt-dlp, named by video_id."""
+        """Download the video. Uses direct HTTP for supa- IDs, yt-dlp otherwise."""
         # Check if already downloaded
         for ext in ("mp4", "mov", "avi", "mkv", "webm"):
             path = os.path.join(DOWNLOADS_DIR, f"{video_id}.{ext}")
@@ -86,11 +87,32 @@ class TwelveLabsClient:
                 print(f"[TWELVE_LABS] Already downloaded: {path}")
                 return path
 
+        if video_id.startswith("supa-"):
+            storage_url = f"https://mhzwvjyvhevawbrhmmtp.supabase.co/storage/v1/object/public/videos/{video_id}.mp4"                        
+            return self._download_from_url(storage_url, video_id)   
+
         print(f"[TWELVE_LABS] Downloading {url} ...")
         result = download_youtube_short(url, output_path=DOWNLOADS_DIR, filename=video_id)
         if result and os.path.isfile(result):
             return result
         return None
+
+    def _download_from_url(self, url: str, video_id: str) -> Optional[str]:
+        """Download a video directly from a public URL."""
+        os.makedirs(DOWNLOADS_DIR, exist_ok=True)
+        file_path = os.path.join(DOWNLOADS_DIR, f"{video_id}.mp4")
+        print(f"[TWELVE_LABS] Downloading from public URL: {url} ...")
+        try:
+            resp = requests.get(url, stream=True, timeout=120)
+            resp.raise_for_status()
+            with open(file_path, "wb") as f:
+                for chunk in resp.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            print(f"[TWELVE_LABS] Downloaded: {file_path}")
+            return file_path
+        except requests.RequestException as e:
+            print(f"[TWELVE_LABS] Direct download failed: {e}")
+            return None
 
     def process_message(self, message: VideoMessage) -> Optional[Dict]:
         """Download, index, and analyze a video."""
