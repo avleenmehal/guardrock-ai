@@ -319,6 +319,109 @@
       50%      { transform: translateX(-50%) translateY(-6px); }
     }
 
+    /* ---------- Filter Bar ---------- */
+    .filter-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 20;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      padding: 14px 16px;
+      padding-top: max(14px, env(safe-area-inset-top, 14px));
+      background: rgba(10,10,11,0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      transform: translateY(-100%);
+      transition: transform 0.3s ease;
+    }
+
+    .filter-bar.open { transform: translateY(0); }
+
+    .filter-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .filter-chip input[type="checkbox"] {
+      display: none;
+    }
+
+    .chip-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 14px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+      border: 1.5px solid transparent;
+      transition: all 0.2s ease;
+      opacity: 0.4;
+    }
+
+    .filter-chip input:checked + .chip-label {
+      opacity: 1;
+    }
+
+    .chip-label.safe {
+      background: var(--green-bg);
+      color: var(--green);
+      border-color: rgba(52,211,153,0.25);
+    }
+
+    .chip-label.vulnerable {
+      background: var(--yellow-bg);
+      color: var(--yellow);
+      border-color: rgba(251,191,36,0.25);
+    }
+
+    .chip-label.risky {
+      background: var(--red-bg);
+      color: var(--red);
+      border-color: rgba(248,113,113,0.25);
+    }
+
+    .filter-chip input:not(:checked) + .chip-label {
+      border-color: transparent;
+    }
+
+    .chip-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .safe .chip-dot { background: var(--green); }
+    .vulnerable .chip-dot { background: var(--yellow); }
+    .risky .chip-dot { background: var(--red); }
+
+    .filter-toggle {
+      pointer-events: auto;
+      cursor: pointer;
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: none;
+      color: var(--text-muted);
+      padding: 6px 10px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: color 0.2s;
+    }
+
+    .filter-toggle.active { color: var(--text); }
+
     /* ---------- Responsive ---------- */
     @media (min-width: 600px) {
       .feed {
@@ -340,9 +443,31 @@
 
   <!-- App -->
   <div id="app" style="display:block">
+    <!-- Filter Bar -->
+    <div class="filter-bar" id="filterBar">
+      <label class="filter-chip">
+        <input type="checkbox" value="safe" checked onchange="applyFilters()">
+        <span class="chip-label safe"><span class="chip-dot"></span>Safe (0–3)</span>
+      </label>
+      <label class="filter-chip">
+        <input type="checkbox" value="vulnerable" checked onchange="applyFilters()">
+        <span class="chip-label vulnerable"><span class="chip-dot"></span>Vulnerable (4–7)</span>
+      </label>
+      <label class="filter-chip">
+        <input type="checkbox" value="risky" checked onchange="applyFilters()">
+        <span class="chip-label risky"><span class="chip-dot"></span>Risky (8–10)</span>
+      </label>
+    </div>
+
     <div class="top-bar">
       <span>Shorts</span>
-      <div class="counter" id="counter"></div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="filter-toggle" id="filterToggle" onclick="toggleFilter()">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 4h18M6 8h12M9 12h6M11 16h2"/></svg>
+          Filter
+        </button>
+        <div class="counter" id="counter"></div>
+      </div>
     </div>
     <div class="feed" id="feed">
       <div class="loading-screen"><div class="spinner"></div><span style="color:var(--text-muted);font-size:13px">Loading videos...</span></div>
@@ -352,6 +477,36 @@
   <script src="config.js"></script>
   <script>
     let videos = [];
+    let filteredVideos = [];
+
+    function toggleFilter() {
+      const bar = document.getElementById('filterBar');
+      const btn = document.getElementById('filterToggle');
+      bar.classList.toggle('open');
+      btn.classList.toggle('active');
+    }
+
+    function getActiveCategories() {
+      const checks = document.querySelectorAll('#filterBar input[type="checkbox"]');
+      const active = [];
+      checks.forEach(cb => { if (cb.checked) active.push(cb.value); });
+      return active;
+    }
+
+    function videoMatchesFilter(v, categories) {
+      const isProcessing = v.summary === null || v.summary === '' || v.level === null;
+      if (isProcessing) return true; // always show processing videos
+      if (v.level <= 3 && categories.includes('safe')) return true;
+      if (v.level >= 4 && v.level <= 7 && categories.includes('vulnerable')) return true;
+      if (v.level >= 8 && categories.includes('risky')) return true;
+      return false;
+    }
+
+    function applyFilters() {
+      const categories = getActiveCategories();
+      filteredVideos = videos.filter(v => videoMatchesFilter(v, categories));
+      renderFeed();
+    }
 
     async function loadVideos() {
       const url = SUPABASE_URL.replace(/\/+$/, '');
@@ -376,6 +531,7 @@
         }
 
         videos = data;
+        filteredVideos = videos;
         renderFeed();
       } catch (err) {
         document.getElementById('feed').innerHTML = `<div class="empty-state"><span>Failed to load: ${err.message}</span></div>`;
@@ -394,7 +550,13 @@
       const feed = document.getElementById('feed');
       const counter = document.getElementById('counter');
 
-      feed.innerHTML = videos.map((v, i) => {
+      if (filteredVideos.length === 0) {
+        feed.innerHTML = '<div class="empty-state"><span>No videos match the selected filters</span></div>';
+        counter.textContent = '0 / 0';
+        return;
+      }
+
+      feed.innerHTML = filteredVideos.map((v, i) => {
         const hasVideo = !!v.video_url;
         const isProcessing = v.summary === null || v.summary === '' || v.level === null;
         const flag = isProcessing ? null : getFlagInfo(v.level);
@@ -433,7 +595,7 @@
                 : `<div class="video-summary">${escapeHtml(v.summary)}</div>`
               }
             </div>
-            ${i === 0 && videos.length > 1 ? `
+            ${i === 0 && filteredVideos.length > 1 ? `
               <div class="scroll-hint">
                 <svg width="24" height="24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2" viewBox="0 0 24 24">
                   <path d="M12 5v14M19 12l-7 7-7-7"/>
@@ -443,7 +605,7 @@
         `;
       }).join('');
 
-      counter.textContent = `1 / ${videos.length}`;
+      counter.textContent = `1 / ${filteredVideos.length}`;
 
       // Intersection Observer for autoplay and counter
       const cards = feed.querySelectorAll('.video-card');
@@ -454,7 +616,7 @@
           const idx = parseInt(card.dataset.index);
 
           if (entry.isIntersecting) {
-            counter.textContent = `${idx + 1} / ${videos.length}`;
+            counter.textContent = `${idx + 1} / ${filteredVideos.length}`;
             if (video) {
               video.currentTime = 0;
               video.play().catch(() => {});
