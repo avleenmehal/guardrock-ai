@@ -1,222 +1,115 @@
-# clients/twelve_labs.py
 from twelvelabs import TwelveLabs
 import time
-import tempfile
 import os
-import shutil
-import yt_dlp
+import glob
 from typing import Optional, Dict, Any
 from models.message import VideoMessage
+
+DOWNLOADS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "downloads")
 
 
 class TwelveLabsClient:
     """Client for Twelve Labs API using official SDK"""
 
     def __init__(self, api_key: str, index_id: str):
-        """
-        Initialize Twelve Labs client
-
-        Args:
-            api_key: Your Twelve Labs API key
-            index_id: Existing index ID from Twelve Labs UI
-        """
         self.client = TwelveLabs(api_key=api_key)
         self.index_id = index_id
+        print(f"[TWELVE_LABS] Client initialized, index: {index_id}")
 
-        print("[TWELVE_LABS] Client initialized")
-        print(f"[TWELVE_LABS] Using index: {index_id}")
+    def index_video_file(self, file_path: str) -> Optional[Any]:
+        """Upload a local video file for indexing. Returns a Task object."""
+        print(f"[TWELVE_LABS] Uploading {file_path} ...")
 
-    def index_youtube_video(self, youtube_url: str, video_uuid: str) -> Optional[Any]:
-        """
-        Submit a YouTube video URL for indexing
+        if not os.path.isfile(file_path):
+            print(f"[TWELVE_LABS] File not found: {file_path}")
+            return None
 
-        The video is processed and stored on Twelve Labs server, then indexed.
-
-        Args:
-            youtube_url: YouTube video URL (e.g., https://www.youtube.com/watch?v=...)
-            video_uuid: UUID to track this video
-
-        Returns:
-            Task object if successful, None otherwise
-        """
-
-        print(f"[TWELVE_LABS] Submitting YouTube video for indexing...")
-        print(f"[TWELVE_LABS]   UUID: {video_uuid}")
-        print(f"[TWELVE_LABS]   YouTube URL: {youtube_url}")
-
-        tmp_path = None
         try:
-            # Get a unique temp path, then delete the empty file so yt-dlp
-            # can create it fresh (otherwise yt-dlp skips an already-existing file)
-            with tempfile.NamedTemporaryFile(suffix='.mp4', delete=False) as tmp:
-                tmp_path = tmp.name
-            os.remove(tmp_path)
-
-            ydl_opts = {
-                'quiet': True,
-                'no_warnings': True,
-                'format': 'best[ext=mp4]/best',
-                'outtmpl': tmp_path,
-                'cookiesfrombrowser': ('chrome',),  # use your logged-in Chrome session
-            }
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(youtube_url, download=True)
-                title = info.get('title', 'unknown')
-
-            file_size = os.path.getsize(tmp_path)
-            print(f"[TWELVE_LABS]   Downloaded: {title}")
-            print(f"[TWELVE_LABS]   File size: {file_size} bytes")
-
-            if file_size == 0:
-                raise ValueError("Downloaded file is empty")
-
-            with open(tmp_path, 'rb') as video_file:
+            with open(file_path, 'rb') as video_file:
                 task = self.client.tasks.create(
                     index_id=self.index_id,
                     video_file=video_file,
                 )
-
-            print(f"[TWELVE_LABS] ✓ YouTube video submitted successfully")
-            print(f"[TWELVE_LABS]   Task ID: {task.id}")
-            print(f"[TWELVE_LABS]   Status: {task.status}")
-
+            print(f"[TWELVE_LABS] Uploaded — task {task.id} ({task.status})")
             return task
-
         except Exception as e:
-            print(f"[TWELVE_LABS] ✗ Failed to submit YouTube video: {e}")
-            print(f"[TWELVE_LABS]   Error type: {type(e).__name__}")
+            print(f"[TWELVE_LABS] Upload failed: {e}")
             return None
 
-        finally:
-            if tmp_path and os.path.exists(tmp_path):
-                os.remove(tmp_path)
-                print(f"[TWELVE_LABS]   Temp file cleaned up")
-
-    def wait_for_indexing(self, task: Any, max_wait_seconds: int = 600) -> Optional[str]:
-        """
-        Wait for video indexing to complete
-
-        Args:
-            task: Task object from index_youtube_video
-            max_wait_seconds: Maximum time to wait (default: 600s = 10min)
-
-        Returns:
-            video_id if successful, None if failed or timeout
-        """
-        print(f"[TWELVE_LABS] Waiting for indexing to complete...")
-        print(f"[TWELVE_LABS]   Task ID: {task.id}")
-        print(f"[TWELVE_LABS]   Max wait: {max_wait_seconds}s")
-
+    def wait_for_indexing(self, task: Any) -> Optional[str]:
+        """Wait for video indexing to complete. Returns video_id."""
+        print(f"[TWELVE_LABS] Waiting for indexing (task {task.id}) ...")
         start_time = time.time()
 
         try:
-            # Define callback to show progress
-            def progress_callback(t):
-                elapsed = int(time.time() - start_time)
-                print(f"[TWELVE_LABS]   [{elapsed}s] Status: {t.status}")
+            def on_progress(t):
+                print(f"[TWELVE_LABS]   [{int(time.time() - start_time)}s] {t.status}")
 
-            # Wait for task to complete with progress updates
-            task.wait_for_done(
-                sleep_interval=10,
-                callback=progress_callback
-            )
-
-            elapsed = int(time.time() - start_time)
+            task.wait_for_done(sleep_interval=10, callback=on_progress)
 
             if task.status == "ready":
-                video_id = task.video_id
-                print(f"[TWELVE_LABS] ✓ Indexing completed!")
-                print(f"[TWELVE_LABS]   Video ID: {video_id}")
-                print(f"[TWELVE_LABS]   Total time: {elapsed}s")
-                return video_id
-            else:
-                print(f"[TWELVE_LABS] ✗ Indexing failed with status: {task.status}")
-                return None
+                print(f"[TWELVE_LABS] Indexing done — video_id={task.video_id} ({int(time.time() - start_time)}s)")
+                return task.video_id
 
+            print(f"[TWELVE_LABS] Indexing ended with status: {task.status}")
+            return None
         except Exception as e:
-            print(f"[TWELVE_LABS] ✗ Error during indexing: {e}")
-            print(f"[TWELVE_LABS]   Error type: {type(e).__name__}")
+            print(f"[TWELVE_LABS] Indexing error: {e}")
             return None
 
     def analyze_video(self, video_id: str, prompt: str) -> Optional[str]:
-        """
-        Analyze the indexed video using Twelve Labs generate endpoint
-
-        Args:
-            video_id: The Twelve Labs video ID
-            prompt: Analysis prompt
-
-        Returns:
-            Analysis text from the model, None if failed
-        """
-        print(f"[TWELVE_LABS] Analyzing video...")
-        print(f"[TWELVE_LABS]   Video ID: {video_id}")
-        print(f"[TWELVE_LABS]   Prompt length: {len(prompt)} chars")
-
+        """Analyze an indexed video. Returns the analysis text."""
+        print(f"[TWELVE_LABS] Analyzing video {video_id} ...")
         try:
-            result = self.client.generate.text(
-                video_id=video_id,
-                prompt=prompt
-            )
-
-            analysis_text = result.data
-
-            print(f"[TWELVE_LABS] ✓ Analysis completed")
-            print(f"[TWELVE_LABS]   Response length: {len(analysis_text)} chars")
-
-            return analysis_text
-
+            result = self.client.generate.text(video_id=video_id, prompt=prompt)
+            print(f"[TWELVE_LABS] Analysis done ({len(result.data)} chars)")
+            return result.data
         except Exception as e:
-            print(f"[TWELVE_LABS] ✗ Failed to analyze video: {e}")
-            print(f"[TWELVE_LABS]   Error type: {type(e).__name__}")
+            print(f"[TWELVE_LABS] Analysis failed: {e}")
             return None
+
+    def _find_video_file(self) -> Optional[str]:
+        """Return the first video file found in the downloads folder."""
+        for ext in ("*.mp4", "*.mov", "*.avi", "*.mkv", "*.webm"):
+            matches = glob.glob(os.path.join(DOWNLOADS_DIR, ext))
+            if matches:
+                return matches[0]
+        return None
 
     def process_message(self, message: VideoMessage) -> Optional[Dict]:
-        """
-        Complete workflow for YouTube video analysis
-
-        Args:
-            message: VideoMessage from the queue containing YouTube URL
-
-        Returns:
-            Dict with analysis results, None if any step fails
-        """
+        """Index a local video file, wait for indexing, and analyze it."""
         print(f"\n{'=' * 60}")
-        print(f"[TWELVE_LABS] Starting YouTube video processing")
-        print(f"{'=' * 60}")
-        print(f"  UUID: {message.unique_id}")
-        print(f"  Title: {message.title}")
-        print(f"  Channel: {message.channel_name}")
-        print(f"  YouTube URL: {message.url}")
-        print(f"  Timestamp: {message.timestamp}")
+        print(f"[TWELVE_LABS] Processing: {message.title} ({message.unique_id})")
         print(f"{'=' * 60}\n")
 
-        # Step 1: Submit YouTube video URL for indexing
-        task = self.index_youtube_video(message.url, message.unique_id)
+        # Step 1: Find the downloaded video file
+        file_path = self._find_video_file()
+        if not file_path:
+            print(f"[TWELVE_LABS] No video file found in {DOWNLOADS_DIR}")
+            return None
+
+        # Step 2: Upload and index
+        task = self.index_video_file(file_path)
         if not task:
-            print(f"[TWELVE_LABS] ✗ Failed to submit YouTube video for indexing")
             return None
 
-        # Step 2: Wait for video to be downloaded, processed, and indexed
-        video_id = self.wait_for_indexing(task, max_wait_seconds=600)
+        # Step 3: Wait for indexing
+        video_id = self.wait_for_indexing(task)
         if not video_id:
-            print(f"[TWELVE_LABS] ✗ Video indexing did not complete successfully")
             return None
 
-        # Step 3: Analyze the indexed video
-        analysis_prompt = self._get_analysis_prompt()
-        analysis_text = self.analyze_video(video_id, analysis_prompt)
-
+        # Step 4: Analyze
+        analysis_text = self.analyze_video(video_id, self._get_analysis_prompt())
         if not analysis_text:
-            print(f"[TWELVE_LABS] ✗ Failed to analyze video")
             return None
 
-        # Step 4: Return complete result
-        result = {
+        print(f"\n[TWELVE_LABS] Processing complete\n")
+
+        return {
             'video_uuid': message.unique_id,
             'video_id': video_id,
             'task_id': task.id,
-            'youtube_url': message.url,
+            'file_path': file_path,
             'analysis_text': analysis_text,
             'metadata': {
                 'title': message.title,
@@ -226,20 +119,8 @@ class TwelveLabsClient:
             }
         }
 
-        print(f"\n{'=' * 60}")
-        print(f"[TWELVE_LABS] ✓ YouTube video processing completed successfully")
-        print(f"{'=' * 60}\n")
-
-        return result
-
     def _get_analysis_prompt(self) -> str:
-        """
-        Get the analysis prompt for intention detection
-
-        Returns:
-            Formatted prompt string
-        """
-        prompt = """Analyze this video for signs of manipulation and urgency that might indicate misinformation or misleading content.
+        return """Analyze this video for signs of manipulation and urgency that might indicate misinformation or misleading content.
 
 **Look for the following indicators:**
 
@@ -273,5 +154,3 @@ class TwelveLabsClient:
 5. **Red Flags:** Any specific concerns that warrant fact-checking
 
 Be specific and quote exact phrases from the video when possible."""
-
-        return prompt
