@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  valkey:
+    image: valkey/valkey:latest
+    container_name: valkey
+    ports:
+      - "6379:6379"
+    volumes:
+      - valkey_data:/data
+    command: valkey-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  producer:
+    build:
+      context: ./producer
+      dockerfile: Dockerfile
+    container_name: producer-api
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - VALKEY_HOST=valkey
+      - VALKEY_PORT=6379
+      - MAX_CACHE_SIZE=${MAX_CACHE_SIZE:-10}
+    depends_on:
+      valkey:
+        condition: service_healthy
+    restart: unless-stopped
+
+  subscriber:
+    build:
+      context: ./subscriber
+      dockerfile: Dockerfile
+    container_name: subscriber-api
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - VALKEY_HOST=valkey
+      - VALKEY_PORT=6379
+    depends_on:
+      valkey:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  valkey_data:
