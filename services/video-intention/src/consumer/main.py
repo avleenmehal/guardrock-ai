@@ -54,13 +54,37 @@ def main():
                 print("=" * 60 + "\n")
 
                 # Push risk summary to endpoint
-                RISK_ENDPOINT = "http://152.7.177.184:3000/api/submit"
-                try:
-                    post_response = requests.post(RISK_ENDPOINT, json=risk_summary)
-                    post_response.raise_for_status()
-                    print(f"✓ Risk summary pushed to {RISK_ENDPOINT}")
-                except requests.RequestException as e:
-                    print(f"✗ Failed to push risk summary: {e}")
+                if message.unique_id.startswith("supa-"):
+                    # PATCH to Supabase
+                    SUPABASE_URL = os.environ.get("SUPABASE_URL")
+                    SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+                    if SUPABASE_URL and SUPABASE_KEY:
+                        patch_url = f"{SUPABASE_URL}/rest/v1/videos?unique_id=eq.{message.unique_id}"
+                        patch_headers = {
+                            "apikey": SUPABASE_KEY,
+                            "Authorization": f"Bearer {SUPABASE_KEY}",
+                            "Content-Type": "application/json",
+                        }
+                        patch_body = {
+                            "summary": risk_summary.get("summary", ""),
+                            "level": risk_summary.get("level", 0),
+                        }
+                        try:
+                            patch_response = requests.patch(patch_url, headers=patch_headers, json=patch_body)
+                            patch_response.raise_for_status()
+                            print(f"✓ Risk summary patched to Supabase for {message.unique_id}")
+                        except requests.RequestException as e:
+                            print(f"✗ Failed to patch risk summary to Supabase: {e}")
+                    else:
+                        print("⚠ SUPABASE_URL or SUPABASE_KEY not set, skipping Supabase patch")
+                else:
+                    RISK_ENDPOINT = "http://152.7.177.184:3000/api/submit"
+                    try:
+                        post_response = requests.post(RISK_ENDPOINT, json=risk_summary)
+                        post_response.raise_for_status()
+                        print(f"✓ Risk summary pushed to {RISK_ENDPOINT}")
+                    except requests.RequestException as e:
+                        print(f"✗ Failed to push risk summary: {e}")
             else:
                 print("⚠ OPENAI_API_KEY not set, skipping risk summary")
         else:

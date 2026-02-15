@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upload Video</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0a0a0b;
+      --surface: #141416;
+      --border: rgba(255,255,255,0.08);
+      --text: #f0ece4;
+      --muted: #8a8680;
+      --green: #34d399;
+      --red: #f87171;
+      --yellow: #fbbf24;
+    }
+
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 480px;
+      width: 100%;
+    }
+
+    h1 { font-size: 24px; margin-bottom: 4px; }
+    .subtitle { color: var(--muted); font-size: 13px; margin-bottom: 28px; line-height: 1.5; }
+
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 6px;
+      margin-top: 16px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus { border-color: rgba(255,255,255,0.2); }
+
+    .row { display: flex; gap: 12px; }
+    .row > div { flex: 1; }
+
+    .file-drop {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 28px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .file-drop:hover, .file-drop.dragover {
+      border-color: rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.02);
+    }
+
+    .file-drop.has-file { border-color: var(--green); color: var(--green); }
+    .file-drop input { display: none; }
+
+    button.submit {
+      width: 100%;
+      padding: 14px;
+      margin-top: 24px;
+      background: var(--text);
+      color: var(--bg);
+      border: none;
+      border-radius: 12px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    button.submit:hover { opacity: 0.85; }
+    button.submit:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .msg {
+      margin-top: 16px;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      display: none;
+      line-height: 1.5;
+    }
+
+    .msg.success { display: block; background: rgba(52,211,153,0.1); color: var(--green); }
+    .msg.error   { display: block; background: rgba(248,113,113,0.1); color: var(--red); }
+    .msg.info    { display: block; background: rgba(251,191,36,0.1); color: var(--yellow); }
+
+
+
+    .steps {
+      margin-top: 12px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h1>Upload Video</h1>
+  <p class="subtitle">Upload an mp4 to storage, save to database, then submit for processing.</p>
+
+  <label>Video File (mp4, optional)</label>
+  <div class="file-drop" id="file-drop">
+    <span id="file-label">Click or drag an .mp4 file here</span>
+    <input type="file" id="file-input" accept="video/mp4" />
+  </div>
+
+  <label>Title</label>
+  <input type="text" id="v-title" placeholder="Morning Routine Hacks" />
+
+  <div class="row">
+    <div>
+      <label>Channel Name</label>
+      <input type="text" id="v-channel" placeholder="LifeSimple" />
+    </div>
+    <div>
+      <label>Unique ID</label>
+      <input type="text" id="v-uid" placeholder="supa-001" value="supa-" />
+    </div>
+  </div>
+
+  <button class="submit" id="btn-upload" onclick="handleUpload()">Upload & Submit</button>
+
+  <div class="msg" id="msg"></div>
+
+  <div class="steps">
+    Steps: Upload mp4 → Insert into DB → POST to processing API.<br>
+    Summary and level are set later via the update endpoint.
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script>
+  const dropZone = document.getElementById('file-drop');
+  const fileInput = document.getElementById('file-input');
+  const fileLabel = document.getElementById('file-label');
+  let selectedFile = null;
+
+  dropZone.addEventListener('click', () => fileInput.click());
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) pickFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', () => { if (fileInput.files[0]) pickFile(fileInput.files[0]); });
+
+  function pickFile(file) {
+    if (!file.type.includes('mp4') && !file.name.endsWith('.mp4')) {
+      showMsg('Please select an .mp4 file.', 'error');
+      return;
+    }
+    selectedFile = file;
+    fileLabel.textContent = file.name;
+    dropZone.classList.add('has-file');
+  }
+
+  function showMsg(text, type) {
+    const el = document.getElementById('msg');
+    el.textContent = text;
+    el.className = 'msg ' + type;
+  }
+
+  async function handleUpload() {
+    const url = SUPABASE_URL.replace(/\/+$/, '');
+    const key = SUPABASE_KEY;
+    const title = document.getElementById('v-title').value.trim();
+    const channel = document.getElementById('v-channel').value.trim();
+    const uid = document.getElementById('v-uid').value.trim();
+    const btn = document.getElementById('btn-upload');
+
+    if (!title || !channel || !uid) return showMsg('Fill in all required fields.', 'error');
+
+    btn.disabled = true;
+    let videoUrl = null;
+
+    try {
+      // Step 1: Upload video to storage
+      if (selectedFile) {
+        btn.textContent = 'Uploading video...';
+        const fileName = `${uid}.mp4`;
+        const uploadRes = await fetch(`${url}/storage/v1/object/videos/${fileName}`, {
+          method: 'POST',
+          headers: {
+            'apikey': key,
+            'Authorization': `Bearer ${key}`,
+            'Content-Type': 'video/mp4',
+            'x-upsert': 'true'
+          },
+          body: selectedFile
+        });
+
+        if (!uploadRes.ok) {
+          const err = await uploadRes.json().catch(() => ({}));
+          throw new Error(err.message || `Storage upload failed (${uploadRes.status})`);
+        }
+
+        videoUrl = `${url}/storage/v1/object/public/videos/${fileName}`;
+      }
+
+      // Step 2: Insert into database (summary and level default, set later via update endpoint)
+      btn.textContent = 'Saving to database...';
+      const row = {
+        unique_id: uid,
+        title: title,
+        channel_name: channel,
+        summary: '',
+        level: 0,
+        video_url: videoUrl
+      };
+
+      const dbRes = await fetch(`${url}/rest/v1/videos`, {
+        method: 'POST',
+        headers: {
+          'apikey': key,
+          'Authorization': `Bearer ${key}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify(row)
+      });
+
+      if (!dbRes.ok) {
+        const err = await dbRes.json().catch(() => ({}));
+        throw new Error(err.message || `Database insert failed (${dbRes.status})`);
+      }
+
+      // Step 3: POST to processing API
+      btn.textContent = 'Submitting for processing...';
+      const payload = {
+        unique_id: uid,
+        url: videoUrl || window.location.href,
+        title: title,
+        channel_name: channel,
+        description: '',
+        timestamp: Date.now(),
+      };
+
+      const apiRes = await fetch('http://152.7.179.59:3000/api/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!apiRes.ok) {
+        showMsg(`"${title}" saved to DB, but processing API returned ${apiRes.status}. You may need to resubmit.`, 'info');
+      } else {
+        showMsg(`"${title}" uploaded and submitted for processing!`, 'success');
+      }
+
+      // Reset form
+      selectedFile = null;
+      fileLabel.textContent = 'Click or drag an .mp4 file here';
+      dropZone.classList.remove('has-file');
+      document.getElementById('v-title').value = '';
+      document.getElementById('v-channel').value = '';
+      document.getElementById('v-uid').value = '';
+      fileInput.value = '';
+
+    } catch (err) {
+      showMsg(err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Upload & Submit';
+    }
+  }
+</script>
+
+</body>
+</html>
