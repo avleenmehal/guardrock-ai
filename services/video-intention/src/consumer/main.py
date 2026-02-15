@@ -6,10 +6,13 @@ _src_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _src_dir not in sys.path:
     sys.path.insert(0, _src_dir)
 
+import json
+import requests
 from clients.twelve_labs_client import TwelveLabsClient
 from config import config
 from consumer.valkey_consumer import ValkeyConsumer
 from models.message import VideoMessage
+from risk_analyser.risk_client import OpenAIClient
 
 
 def main():
@@ -39,7 +42,27 @@ def main():
             print(result['analysis_text'])
             print("=" * 60 + "\n")
 
-            # TODO: Parse analysis, calculate scores, call fact-checker
+            # Call risk_analyser to get a risk summary via OpenAI
+            openai_key = os.environ.get("OPENAI_API_KEY")
+            if openai_key:
+                openai_client = OpenAIClient(openai_key)
+                risk_summary = openai_client.summarise(result)
+                print("\n" + "=" * 60)
+                print("RISK SUMMARY")
+                print("=" * 60)
+                print(json.dumps(risk_summary, indent=2))
+                print("=" * 60 + "\n")
+
+                # Push risk summary to endpoint
+                RISK_ENDPOINT = "http://152.7.177.184:3000/api/submit"
+                try:
+                    post_response = requests.post(RISK_ENDPOINT, json=risk_summary)
+                    post_response.raise_for_status()
+                    print(f"✓ Risk summary pushed to {RISK_ENDPOINT}")
+                except requests.RequestException as e:
+                    print(f"✗ Failed to push risk summary: {e}")
+            else:
+                print("⚠ OPENAI_API_KEY not set, skipping risk summary")
         else:
             print("\n✗ Failed to process video\n")
 
