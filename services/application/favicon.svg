@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
   <!-- Body -->
   <ellipse cx="256" cy="300" rx="200" ry="210" fill="#9C8577"/>
   <!-- Belly -->
