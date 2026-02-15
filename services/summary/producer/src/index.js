@@ -27,7 +27,7 @@ valkey.on('connect', () => console.log('Connected to Valkey'));
 
 // Validation middleware
 const validateSubmission = (req, res, next) => {
-  const { channel_name, title, unique_id, summary } = req.body;
+  const { channel_name, title, unique_id, summary, level } = req.body;
   
   console.log('Received:', req.body);
   
