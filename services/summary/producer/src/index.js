@@ -31,10 +31,10 @@ const validateSubmission = (req, res, next) => {
   
   console.log('Received:', req.body);
   
-  if (!channel_name || !title || !unique_id || !summary) {
+  if (!channel_name || !title || !unique_id || !summary || !level) {
     return res.status(400).json({ 
       error: 'Missing required fields',
-      required: ['channel_name', 'title', 'unique_id', 'summary']
+      required: ['channel_name', 'title', 'unique_id', 'summary', 'level']
     });
   }
   
