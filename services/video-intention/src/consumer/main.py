@@ -22,7 +22,7 @@ def main():
 
     # Initialize clients
     valkey_consumer = ValkeyConsumer(
-        base_url="http://152.7.179.59:3001/api/consume",
+        base_url="http://152.7.179.48:3001/api/consume",
         poll_interval=10
     )
 
@@ -78,7 +78,7 @@ def main():
                     else:
                         print("⚠ SUPABASE_URL or SUPABASE_KEY not set, skipping Supabase patch")
                 else:
-                    RISK_ENDPOINT = "http://152.7.177.184:3000/api/submit"
+                    RISK_ENDPOINT = "http://152.7.179.25:3000/api/submit"
                     try:
                         post_response = requests.post(RISK_ENDPOINT, json=risk_summary)
                         post_response.raise_for_status()
