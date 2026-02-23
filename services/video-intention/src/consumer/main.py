@@ -26,7 +26,7 @@ def main():
         poll_interval=10
     )
 
-    twelve_labs_client = TwelveLabsClient(api_key=config.twelve_labs.api_key,index_id="69921ab541a8303306572c9b")
+    twelve_labs_client = TwelveLabsClient(api_key=config.twelve_labs.api_key,index_id="699bc6ed4e9550b00eda572a")
 
     print("✓ Clients initialized")
     print("=" * 60 + "\n")
