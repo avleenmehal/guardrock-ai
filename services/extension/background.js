@@ -1,7 +1,7 @@
 // background.js
 
-const BACKEND_URL = 'http://152.7.179.59:3000/api/submit';
-const PULL_URL = 'http://152.7.177.184:3001/api/consume/';
+const BACKEND_URL = 'http://152.7.179.48:3000/api/submit';
+const PULL_URL = 'http://152.7.179.25:3001/api/consume/';
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
 
